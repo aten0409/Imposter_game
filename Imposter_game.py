@@ -7,7 +7,7 @@ st.set_page_config(page_title="Find Your group",layout="centered", page_icon="�
 # เชื่อมต่อ Google Sheets (ค่า URL จะไปตั้งใน Secrets ทีหลัง)
 conn = st.connection("gsheets", type=GSheetsConnection)
 url = "https://docs.google.com/spreadsheets/d/1-qGlWR5Fa9TfaCO4Nae8IVATESt3fKbuO6vWp9tcSGA/edit?usp=sharing"
-df = conn.read(spreadsheet=url, ttl=0)
+df = conn.read(spreadsheet=url, ttl=30)
 
 # 3. ใช้ Session State เพื่อคุมการสลับหน้าจอ
 if 'screen' not in st.session_state:
@@ -61,18 +61,42 @@ elif st.session_state.screen == 'result':
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                height: 80vh;
+                height: 75vh;
                 color: white;
                 text-align: center;
+                padding: 10px;
+            }}
+
+            /* ขนาดสำหรับหน้าจอคอมพิวเตอร์ */
+            .label-text {{
+                font-size: 30px;
+                margin-bottom: 20px;
             }}
             .huge-text {{
                 font-size: 80px !important;
                 font-weight: bold;
-                line-height: 1.2;
+                line-height: 1.1;
+                word-wrap: break-word;
+                max-width: 90vw;
+            }}
+
+            /* ปรับขนาดสำหรับโทรศัพท์มือถือ (หน้าจอเล็กกว่า 600px) */
+            @media only screen and (max-width: 600px) {{
+                .label-text {{
+                    font-size: 6vw; /* ปรับตามความกว้างหน้าจอ */
+                    margin-bottom: 10px;
+                }}
+                .huge-text {{
+                    font-size: 14vw !important; /* ปรับให้พอดีจอโทรศัพท์ */
+                }}
+                .main-container {{
+                    height: 60vh;
+                }}
             }}
         </style>
+        
         <div class="main-container">
-            <div style="font-size: 30px; margin-bottom: 20px;">บทบาทของคุณคือ</div>
+            <div class="label-text">บทบาทของคุณคือ</div>
             <div class="huge-text">{group}</div>
         </div>
     """, unsafe_allow_html=True)
