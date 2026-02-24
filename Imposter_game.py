@@ -2,35 +2,82 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 
 # ตั้งค่าหน้าเว็บ
-st.set_page_config(page_title="Check Your Role", page_icon="🕵️")
-
-st.title("🎮 กิจกรรมค้นหาบทบาท")
-st.write("กรุณาใส่เลขนักศึกษาเพื่อตรวจสอบกลุ่มและหน้าที่ของคุณ")
+st.set_page_config(page_title="Find Your group",layout="centered", page_icon="🕵️")
 
 # เชื่อมต่อ Google Sheets (ค่า URL จะไปตั้งใน Secrets ทีหลัง)
 conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/1-qGlWR5Fa9TfaCO4Nae8IVATESt3fKbuO6vWp9tcSGA/edit?usp=sharing", ttl=0)
+url = "https://docs.google.com/spreadsheets/d/1-qGlWR5Fa9TfaCO4Nae8IVATESt3fKbuO6vWp9tcSGA/edit?usp=sharing"
+df = conn.read(spreadsheet=url, ttl=0)
 
-# ช่องรับข้อมูล
-student_id_input = st.text_input("เลขนักศึกษา", placeholder="เช่น 6XXXXXXX")
+# 3. ใช้ Session State เพื่อคุมการสลับหน้าจอ
+if 'screen' not in st.session_state:
+    st.session_state.screen = 'input' # หน้าเริ่มต้นคือหน้า input
+    st.session_state.user_data = None
 
-if st.button("ตรวจสอบข้อมูล"):
-    if student_id_input:
-        # ค้นหาใน Column 'student_id' (ต้องตรงกับหัวตารางใน Google Sheet)
-        result = df[df['student_id'].astype(str) == student_id_input]
-        
-        if not result.empty:
-            group = result.iloc[0]['group']
+# --- ส่วนของการแสดงผล ---
+
+# 4. หน้ากรอกข้อมูล (โชว์เฉพาะเมื่อ screen == 'input')
+if st.session_state.screen == 'input':
+    st.title("FIND YOUR ROLE!!!")
+    st.write("กรุณาใส่เลขนักศึกษาเพื่อตรวจสอบบทบาทของคุณ")
+    
+    student_id = st.text_input("รหัสนักศึกษา", placeholder="6XXXXXXX")
+    
+    if st.button("ตรวจสอบข้อมูล"):
+        if student_id:
+            result = df[df['student_id'].astype(str) == student_id]
             
-            st.divider()
-            st.subheader(f"กลุ่มของคุณคือ: {group}")
-            
-            # ถ้าเป็น Imposter ให้โชว์สีแดงเตือน
-            if group.lower() == "imposter":
-                st.error(f"บทบาทของคุณคือ: {group} 🚨")
+            if not result.empty:
+                st.session_state.user_data = result.iloc[0]
+                st.session_state.screen = 'result' # สั่งเปลี่ยนหน้า
+                st.rerun()
             else:
-                st.success(f"บทบาทของคุณคือ: {group} ✅")
+                st.error("❌ ไม่พบเลขนักศึกษานี้ในระบบ")
         else:
-            st.warning("❌ ไม่พบเลขนักศึกษานี้ในระบบ กรุณาลองใหม่อีกครั้ง")
-    else:
-        st.info("กรุณากรอกเลขนักศึกษาก่อนกดปุ่ม")
+            st.warning("กรุณากรอกเลขนักศึกษาก่อนครับ")
+
+# 5. หน้าแสดงผลเต็มจอ (โชว์เฉพาะเมื่อ screen == 'result')
+elif st.session_state.screen == 'result':
+    data = st.session_state.user_data
+    group = data['group']
+    
+    # เช็กว่าเป็น Imposter หรือไม่ (เช็กจากคำใน Column group)
+    is_imposter = "imposter" in str(group).lower()
+    bg_color = "#FF4B4B" if is_imposter else "#00C853" # แดงถ้าใช่, เขียวถ้าไม่ใช่
+    
+    # ใช้ CSS ปรับพื้นหลังทั้งหน้าและทำให้ตัวหนังสือใหญ่
+    st.markdown(f"""
+        <style>
+            /* ปรับพื้นหลังของแอปทั้งหมด */
+            .stApp {{
+                background-color: {bg_color};
+            }}
+            /* ซ่อนเมนูและปุ่มด้านบนเพื่อให้ดูเป็นแอปเต็มจอ */
+            header {{visibility: hidden;}}
+            footer {{visibility: hidden;}}
+            
+            .main-container {{
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 80vh;
+                color: white;
+                text-align: center;
+            }}
+            .huge-text {{
+                font-size: 80px !important;
+                font-weight: bold;
+                line-height: 1.2;
+            }}
+        </style>
+        <div class="main-container">
+            <div style="font-size: 30px; margin-bottom: 20px;">บทบาทของคุณคือ</div>
+            <div class="huge-text">{group}</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # ปุ่มย้อนกลับแบบ Minimal
+    if st.button("BACK"):
+        st.session_state.screen = 'input'
+        st.rerun()
