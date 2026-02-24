@@ -9,7 +9,7 @@ st.write("กรุณาใส่เลขนักศึกษาเพื่�
 
 # เชื่อมต่อ Google Sheets (ค่า URL จะไปตั้งใน Secrets ทีหลัง)
 conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/1-qGlWR5Fa9TfaCO4Nae8IVATESt3fKbuO6vWp9tcSGA/edit?usp=sharing")
+df = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/1-qGlWR5Fa9TfaCO4Nae8IVATESt3fKbuO6vWp9tcSGA/edit?usp=sharing", ttl=0)
 
 # ช่องรับข้อมูล
 student_id_input = st.text_input("เลขนักศึกษา", placeholder="เช่น 6XXXXXXX")
